@@ -18,10 +18,10 @@ train_trials = {
         }
     },
     "IBM": {
-        # The first and second trials are exact duplicates
+        # The first and second trials in paper (first and third here) are exact duplicates
         # 1: {
         #     "train": ("2003-02-10", "2004-09-10"),
-        #     "test": ("2004-10-13", "2005-01-21")
+        #     "test": ("2004-09-13", "2005-01-21")
         # },
         2: {
             "train": ("2003-02-10", "2004-09-10"),
