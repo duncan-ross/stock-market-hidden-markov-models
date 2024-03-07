@@ -117,7 +117,12 @@ def predict_hmm(
 ):
     test_df = get_data_subset(df, start_date, end_date, latency, include_buffer)
     n, _, _, _ = get_3d_1d_obs(test_df, edges, x_max, y_max)
-    x_hmm_test = get_hmm_input(n).reshape(-1, latency)[:, : (latency - 1)]
+    try:
+        x_hmm_test = get_hmm_input(n, latency=latency).reshape(-1, latency)[:, : (latency - 1)]
+    except:
+        x_hmm_test = get_hmm_input(n, latency=latency)
+        highest_latency_divisor = (x_hmm_test.shape[0] // latency) * latency
+        x_hmm_test = x_hmm_test[0:highest_latency_divisor-1].reshape(-1, latency)[:, : (latency - 1)]
     best_xs = []
     for x_hmm in tqdm(x_hmm_test):
         best_ll = float("-inf")
@@ -175,7 +180,7 @@ def run_trial(dfs, tck, train_period, test_period, latency=10, n_states=4):
     start_train, end_train = train_period
     start_test, end_test = test_period
 
-    print("Training HMM")
+    print(f"Training HMM on train period {train_period}")
     hmm_model, (x_max, y_max), (train_fracs), train_edges = train_hmm(
         df,
         start_date=start_train,
@@ -183,9 +188,9 @@ def run_trial(dfs, tck, train_period, test_period, latency=10, n_states=4):
         latency=latency,
         n_states=n_states,
     )
-    print("Training Complete")
+    # print("Training Complete")
 
-    print("Generating Predictions")
+    print(f"Generating Predictions for test period {test_period}")
     s_test, c_test, p_test = predict_hmm(
         df,
         start_date=start_test,
@@ -197,10 +202,12 @@ def run_trial(dfs, tck, train_period, test_period, latency=10, n_states=4):
         y_max=y_max,
         latency=latency,
     )
-    print("Predictions Generated")
+    # print("Predictions Generated")
 
     # TODO: Write predictions to CSV file
 
     results = calculate_mape_dpa(p=p_test, c=c_test, s=s_test)
-    print(f"{tck} trial: MAPE = {results['MAPE']}, DPA = {results['DPA']}")
+    print(f"{tck} trial with latent states = {n_states}, context window size = {latency}")
+    print(f"MAPE = {results['MAPE']}, DPA = {results['DPA']}")
+    print('-' * 80)
     return results
