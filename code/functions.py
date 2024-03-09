@@ -1,7 +1,8 @@
-from hmmlearn.hmm import GMMHMM
+import re
+
 import numpy as np
 import pandas as pd
-import re
+from hmmlearn.hmm import GMMHMM
 from tqdm import tqdm
 
 
@@ -200,6 +201,21 @@ def run_trial(dfs, tck, train_period, test_period, latency=10, n_states=4):
     print("Predictions Generated")
 
     # TODO: Write predictions to CSV file
+    preds_df = pd.DataFrame(
+        {
+            "date": df.Date[(df.Date >= start_test) & (df.Date <= end_test)],
+            "open": s_test,
+            "close": c_test,
+            "predicted": p_test,
+            "percentage_change": (c_test - s_test) / s_test,
+            "predicted_percentage_change": (p_test - s_test) / s_test,
+            "mape": np.abs(p_test - c_test) / c_test,
+            "dpa": np.sign(p_test - s_test) == np.sign(c_test - s_test),
+            "ticker": tck,
+            "latency": latency,
+        }
+    )
+
 
     results = calculate_mape_dpa(p=p_test, c=c_test, s=s_test)
     print(
@@ -207,4 +223,4 @@ def run_trial(dfs, tck, train_period, test_period, latency=10, n_states=4):
     )
     print(f"MAPE = {results['MAPE']}, DPA = {results['DPA']}")
     print("-" * 80)
-    return results
+    return results, preds_df
