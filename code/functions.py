@@ -216,7 +216,6 @@ def run_trial(dfs, tck, train_period, test_period, latency=10, n_states=4):
         }
     )
 
-
     results = calculate_mape_dpa(p=p_test, c=c_test, s=s_test)
     print(
         f"{tck} trial with latent states = {n_states}, context window size = {latency}"
@@ -224,3 +223,13 @@ def run_trial(dfs, tck, train_period, test_period, latency=10, n_states=4):
     print(f"MAPE = {results['MAPE']}, DPA = {results['DPA']}")
     print("-" * 80)
     return results, preds_df
+
+
+def load_predictions(ticker, latency: int = None, n_states: int = None):
+    df = pd.read_csv(f"../predictions/{ticker}/predictions.csv")
+    if latency:
+        df = df[df["latency"] == latency]
+    if n_states:
+        df = df[df["n_states"] == n_states]
+    df["date"] = pd.to_datetime(df["date"])
+    return df
