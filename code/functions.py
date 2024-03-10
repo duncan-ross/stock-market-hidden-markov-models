@@ -104,8 +104,7 @@ def train_hmm(df, start_date, end_date, latency=10, n_states=4, include_buffer=T
         covariance_type="diag",
         random_state=217,
         n_iter=1000,
-	    algorithm="map",
-	    implementation="scaling"
+	    algorithm="map"
     )
     hmm_model.fit(
         X=x_hmm,
