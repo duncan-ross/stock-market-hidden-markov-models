@@ -1,4 +1,5 @@
 import re
+from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 import pandas as pd
@@ -113,6 +114,20 @@ def train_hmm(df, start_date, end_date, latency=10, n_states=4, include_buffer=T
     return hmm_model, (x.max(), y.max()), fracs, edges
 
 
+def process_x_hmm(args):
+    x_hmm, x_max, y_max, hmm_model = args
+    best_ll = float("-inf")
+    best_x = None  # Initialize best_x
+    for x in range(50):
+        for y in range(10):
+            for z in range(10):
+                n_i = (z - 1) * (x_max * y_max) + (y - 1) * x_max + x
+                score = hmm_model.score(np.concatenate((x_hmm, np.array([n_i]))).reshape(-1, 1))
+                if score > best_ll:
+                    best_x = x
+                    best_ll = score
+    return best_x
+
 def predict_hmm(
     df,
     start_date,
@@ -125,25 +140,20 @@ def predict_hmm(
     latency=10,
     include_buffer=True,
 ):
+    # Assuming get_data_subset, get_3d_1d_obs, and get_hmm_input are defined elsewhere
     test_df = get_data_subset(df, start_date, end_date, latency, include_buffer)
     n, _, _, _ = get_3d_1d_obs(test_df, edges, x_max, y_max)
-    x_hmm_test = get_hmm_input(n, latency=latency).reshape(-1, latency)[
-        :, : (latency - 1)
-    ]
+    x_hmm_test = get_hmm_input(n, latency=latency).reshape(-1, latency)[:, : (latency - 1)]
+    
+    # Prepare data for parallel processing
+    tasks = [(x_hmm, x_max, y_max, hmm_model) for x_hmm in x_hmm_test]
+    
+    # Parallel processing
     best_xs = []
-    for x_hmm in tqdm(x_hmm_test):
-        best_ll = float("-inf")
-        for x in range(50):
-            for y in range(10):
-                for z in range(10):
-                    n_i = (z - 1) * (x_max * y_max) + (y - 1) * x_max + x
-                    score = hmm_model.score(
-                        np.concatenate((x_hmm, np.array([n_i]))).reshape(-1, 1)
-                    )
-                    if score > best_ll:
-                        best_x = x
-                        best_ll = score
-        best_xs.append(best_x)
+    with ProcessPoolExecutor() as executor:
+        futures = list(executor.map(process_x_hmm, tasks))
+        for future in tqdm(futures):
+            best_xs.append(future)
 
     if include_buffer:
         test_df = test_df.iloc[(latency - 1) :]

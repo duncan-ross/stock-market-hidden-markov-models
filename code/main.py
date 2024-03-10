@@ -1,6 +1,6 @@
+import pandas as pd
 from constants import train_trials
 from functions import load_data, run_trial
-import pandas as pd
 
 if __name__ == "__main__":
     dfs = load_data(tcks=("AAPL", "DELL", "FORD", "IBM", "MACYS", "SP500"))
