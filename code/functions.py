@@ -98,9 +98,18 @@ def train_hmm(df, start_date, end_date, latency=10, n_states=4, include_buffer=T
     n, (x, y, _), fracs, edges = get_3d_1d_obs(train_df)
     x_hmm = get_hmm_input(n, latency=latency)
     hmm_model = GMMHMM(
-        n_components=n_states, covariance_type="diag", random_state=217, n_iter=1000
+        n_components=n_states,
+        n_mix=4,
+        covariance_type="diag",
+        random_state=217,
+        n_iter=1000,
+	    algorithm="map",
+	    implementation="scaling"
     )
-    hmm_model.fit(X=x_hmm, lengths=[latency for _ in range(x_hmm.shape[0] // latency)])
+    hmm_model.fit(
+        X=x_hmm,
+        lengths=[latency for _ in range(x_hmm.shape[0] // latency)]
+    )
     return hmm_model, (x.max(), y.max()), fracs, edges
 
 
